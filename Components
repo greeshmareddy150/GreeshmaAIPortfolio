@@ -1,0 +1,106 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { chatWithResume } from '../services/geminiService';
+
+const AIAssistant: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
+    { role: 'ai', text: "Hi! I'm Greeshma's virtual assistant. Ask me anything about her experience with AI/ML, cloud migrations, or her time at JPMC!" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMsg = input;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setIsLoading(true);
+
+    const aiResponse = await chatWithResume(userMsg);
+    setMessages(prev => [...prev, { role: 'ai', text: aiResponse || "Sorry, I couldn't process that." }]);
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      {!isOpen ? (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-sky-500 hover:bg-sky-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        >
+          <i className="fa-solid fa-robot text-2xl"></i>
+        </button>
+      ) : (
+        <div className="glass-card w-80 md:w-96 h-[500px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center">
+                <i className="fa-solid fa-robot text-sm"></i>
+              </div>
+              <span className="font-semibold text-sky-400">Greeshma-Bot</span>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white">
+              <i className="fa-solid fa-times"></i>
+            </button>
+          </div>
+          
+          <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-sky-900">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                  m.role === 'user' 
+                  ? 'bg-sky-600 text-white rounded-tr-none' 
+                  : 'bg-slate-700/50 text-slate-200 rounded-tl-none border border-white/5'
+                }`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-slate-700/50 p-3 rounded-2xl rounded-tl-none border border-white/5">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce [animation-delay:-.3s]"></div>
+                    <div className="w-2 h-2 bg-sky-500 rounded-full animate-bounce [animation-delay:-.5s]"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 bg-slate-800/50 border-t border-white/10">
+            <div className="relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Ask me about Greeshma..."
+                className="w-full bg-slate-900 border border-white/10 rounded-xl py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={isLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sky-500 hover:text-sky-400 disabled:opacity-50"
+              >
+                <i className="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AIAssistant;
